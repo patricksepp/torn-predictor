@@ -5,9 +5,17 @@ from routers import auth, predict, data, subscription, admin
 
 app = FastAPI(title="Torn Battle Stats Predictor API", version="0.1.0")
 
+ALLOWED_ORIGINS = [
+    "https://torn-predictor.vercel.app",
+    "https://*.vercel.app",       # preview deployments
+    "http://localhost:3000",      # local admin dev
+    "http://localhost:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -3,6 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "env": {
-    "NEXT_PUBLIC_BACKEND_URL": "https://your-backend.railway.app"
+    "NEXT_PUBLIC_BACKEND_URL": "https://torn-predictor-production.up.railway.app"
   }
 }
