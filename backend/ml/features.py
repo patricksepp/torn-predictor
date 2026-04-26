@@ -10,7 +10,7 @@ STORED_COLUMNS = [
     "xantaken",          # 250 energy each; biggest single source
     "energydrinkused",   # 100 energy each
     "candyused",         # 10 energy each
-    "refills",           # fills bar to 150 energy each time
+    "refills",           # fills bar to max energy (100 non-donor / 150 donor)
     # Gym session counts — direct stat indicator when available
     "gymstrength", "gymspeed", "gymdefense", "gymdexterity",
     # Direct stat boosts (bypass gym)
@@ -19,6 +19,8 @@ STORED_COLUMNS = [
     "useractivity",      # total minutes online — strongest activity proxy
     "attackswon",        # combat activity
     "daysbeendonator",   # subscriber bonus (~10% extra stats per gym session)
+    # Property → max happiness proxy (happiness is dominant gym gains multiplier)
+    "property_happy",    # Shack=100, Penthouse=925, Private Island=3000
 ]
 
 # All features fed into XGBoost, including derived ones computed at build time.
@@ -29,6 +31,27 @@ FEATURE_COLUMNS = STORED_COLUMNS + [
     # gym_total: sum of all gym visits — powerful when non-zero
     "gym_total",
 ]
+
+PROPERTY_HAPPY: dict[str, int] = {
+    "Shack":          100,
+    "Apartment":      200,
+    "House":          400,
+    "Ranch":          400,
+    "Townhouse":      550,
+    "Condominium":    650,
+    "Mansion":        800,
+    "Palace":         850,
+    "Penthouse":      925,
+    "Private Island": 3000,
+}
+
+
+def property_to_happy(property_name: str | None) -> int:
+    """Maps Torn property type to approximate max happiness value."""
+    if not property_name:
+        return 400  # unknown → assume House as midpoint
+    return PROPERTY_HAPPY.get(property_name, 400)
+
 
 # Fallback medians when a column is entirely null in training data.
 _FALLBACK_MEDIANS: dict[str, float] = {
@@ -49,6 +72,7 @@ _FALLBACK_MEDIANS: dict[str, float] = {
     "attackswon":          5,
     "nerverefills":        0,
     "daysbeendonator":     0,
+    "property_happy":    400,
     "total_energy_proxy":  0,
     "gym_total":           0,
 }
@@ -128,5 +152,6 @@ def build_single_feature_vector(profile: dict, personalstats: dict) -> np.ndarra
         "useractivity":      personalstats.get("useractivity")         or 0,
         "attackswon":        personalstats.get("attackswon")           or 0,
         "daysbeendonator":   personalstats.get("daysbeendonator")      or 0,
+        "property_happy":    property_to_happy(profile.get("property")),
     }
     return build_feature_matrix([row])

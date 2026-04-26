@@ -116,6 +116,7 @@ def _extract_own_tbs(profile: dict) -> int | None:
 
 def _extract_features(profile: dict) -> dict:
     """Extracts ML feature columns from a player profile."""
+    from ml.features import property_to_happy
     ps = profile.get("personalstats", {})
     return {
         "level":             profile.get("level"),
@@ -130,11 +131,10 @@ def _extract_features(profile: dict) -> dict:
         "gymdefense":        ps.get("gymdefense"),
         "gymdexterity":      ps.get("gymdexterity"),
         "statenhancersused": ps.get("statenhancersused"),
-        # trainsreceived intentionally omitted: employer trains give JOB stats
-        # (INT/MAN/END), not battle stats (STR/DEF/SPD/DEX)
         "useractivity":      ps.get("useractivity"),
         "attackswon":        ps.get("attackswon"),
         "daysbeendonator":   ps.get("daysbeendonator"),
+        "property_happy":    property_to_happy(profile.get("property")),
     }
 
 
