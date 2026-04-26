@@ -85,21 +85,24 @@ async def predict(
     if ml_ready:
         result = ml_predict(profile)
         if result is not None:
-            # Hard-clamp to rank range — rank is a game mechanic, not an estimate
             clamped = clamp_to_rank(result["predicted_tbs"], rank)
-            if clamped != result["predicted_tbs"]:
-                ratio = clamped / max(result["predicted_tbs"], 1)
-                result["predicted_tbs"] = clamped
-                result["predicted_str"] = int((result.get("predicted_str") or 0) * ratio)
-                result["predicted_def"] = int((result.get("predicted_def") or 0) * ratio)
-                result["predicted_spd"] = int((result.get("predicted_spd") or 0) * ratio)
-                result["predicted_dex"] = int((result.get("predicted_dex") or 0) * ratio)
-            # Re-split with combat-aware ratios if gym counts were not available
-            s, d, sp, dx = split_by_gym(result["predicted_tbs"], ps)
-            result["predicted_str"] = s
-            result["predicted_def"] = d
-            result["predicted_spd"] = sp
-            result["predicted_dex"] = dx
+            # If rank clamp moved the prediction by more than 3×, the ML is
+            # extrapolating outside its training range — fall back to rank.
+            if clamped > result["predicted_tbs"] * 3:
+                result = None
+            else:
+                if clamped != result["predicted_tbs"]:
+                    ratio = clamped / max(result["predicted_tbs"], 1)
+                    result["predicted_tbs"] = clamped
+                    result["predicted_str"] = int((result.get("predicted_str") or 0) * ratio)
+                    result["predicted_def"] = int((result.get("predicted_def") or 0) * ratio)
+                    result["predicted_spd"] = int((result.get("predicted_spd") or 0) * ratio)
+                    result["predicted_dex"] = int((result.get("predicted_dex") or 0) * ratio)
+                s, d, sp, dx = split_by_gym(result["predicted_tbs"], ps)
+                result["predicted_str"] = s
+                result["predicted_def"] = d
+                result["predicted_spd"] = sp
+                result["predicted_dex"] = dx
 
     if result is None:
         result = rank_predict(rank, level, ps)
