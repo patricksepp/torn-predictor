@@ -242,10 +242,11 @@ def enrich_existing(players_by_id: dict, api_key: str, sb) -> None:
             "attackswon":        ps.get("attackswon"),
             "daysbeendonator":   ps.get("daysbeendonator"),
         }
-        sb.table("training_data")\
-          .update(update_data)\
-          .eq("source_attack_id", f"baldr_{tid}")\
-          .execute()
+        # Use RPC to bypass PostgREST schema cache (avoids PGRST204 on new columns)
+        sb.rpc("enrich_training_row", {
+            "p_source_attack_id": f"baldr_{tid}",
+            "p_data": {k: v for k, v in update_data.items() if v is not None},
+        }).execute()
         updated += 1
         print(" ok")
 

@@ -7,7 +7,7 @@ from xgboost import XGBRegressor
 from sklearn.model_selection import cross_val_score
 import joblib
 
-from ml.features import FEATURE_COLUMNS, build_feature_matrix
+from ml.features import STORED_COLUMNS, build_feature_matrix
 from db.supabase_client import get_supabase
 
 MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
@@ -17,7 +17,7 @@ MIN_SAMPLES = 20  # lower threshold so we can train even with little data
 def _load_training_data() -> tuple[np.ndarray, np.ndarray]:
     """Loads all training rows from Supabase, returns (X, y)."""
     sb = get_supabase()
-    cols = ",".join(["estimated_tbs"] + FEATURE_COLUMNS)
+    cols = ",".join(["estimated_tbs"] + STORED_COLUMNS)
     r = sb.table("training_data").select(cols).execute()
     rows = r.data or []
 
