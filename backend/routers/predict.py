@@ -56,7 +56,7 @@ async def get_prediction(
         raise HTTPException(500, "Failed to decrypt API key")
 
     try:
-        result = await predict(target_id, api_key)
+        result = await predict(target_id, api_key, requester_torn_id=torn_id)
     except TornUserInactiveError:
         raise HTTPException(403, "Your API key is inactive")
     except TornKeyPausedError:

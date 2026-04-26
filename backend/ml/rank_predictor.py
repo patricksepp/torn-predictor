@@ -24,9 +24,32 @@ def _normalize_rank(rank: str) -> str:
     return _NORMALIZED.get(rank.lower(), "Experienced")
 
 
-def rank_predict(rank: str, level: int) -> dict:
+def split_by_gym(predicted_tbs: int, ps: dict) -> tuple[int, int, int, int]:
     """
-    Phase 1 prediction using only rank + level.
+    Splits predicted TBS into individual stats using gym visit counts as a proxy
+    for how the player distributed their training. Falls back to equal split.
+    """
+    gym_str = ps.get("gymstrength") or 0
+    gym_def = ps.get("gymdefense") or 0
+    gym_spd = ps.get("gymspeed") or 0
+    gym_dex = ps.get("gymdexterity") or 0
+    gym_total = gym_str + gym_def + gym_spd + gym_dex
+
+    if gym_total == 0:
+        quarter = predicted_tbs // 4
+        return quarter, quarter, quarter, quarter
+
+    return (
+        int(predicted_tbs * gym_str / gym_total),
+        int(predicted_tbs * gym_def / gym_total),
+        int(predicted_tbs * gym_spd / gym_total),
+        int(predicted_tbs * gym_dex / gym_total),
+    )
+
+
+def rank_predict(rank: str, level: int, ps: dict | None = None) -> dict:
+    """
+    Phase 1 prediction using rank + level, with gym-ratio stat split when available.
     Returns predicted_tbs, confidence='low', method='rank'.
     """
     norm = _normalize_rank(rank)
@@ -36,12 +59,14 @@ def rank_predict(rank: str, level: int) -> dict:
     level_factor  = min(level / 100, 1.0)
     predicted_tbs = int(low + (high - low) * (0.3 + 0.7 * level_factor))
 
+    s, d, sp, dx = split_by_gym(predicted_tbs, ps or {})
+
     return {
         "predicted_tbs": predicted_tbs,
-        "predicted_str": predicted_tbs // 4,
-        "predicted_def": predicted_tbs // 4,
-        "predicted_spd": predicted_tbs // 4,
-        "predicted_dex": predicted_tbs // 4,
+        "predicted_str": s,
+        "predicted_def": d,
+        "predicted_spd": sp,
+        "predicted_dex": dx,
         "confidence":    "low",
         "method":        "rank",
         "rank_used":     norm,
