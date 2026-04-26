@@ -48,20 +48,17 @@ async def login(body: LoginRequest):
     torn_name = info["name"]
 
     # 2. Look up by torn_id (NOT api_key — identity never changes)
-    try:
-        existing = await get_user_by_torn_id(torn_id)
-        is_new   = existing is None
+    existing = await get_user_by_torn_id(torn_id)
+    is_new   = existing is None
 
-        if existing:
-            user = await update_user_on_login(torn_id, torn_name, api_key)
-            role = user["role"]
-            tier = user["subscription_tier"]
-        else:
-            user = await create_user(torn_id, torn_name, api_key)
-            role = "user"
-            tier = "free"
-    except Exception as e:
-        raise HTTPException(500, f"Database error: {type(e).__name__}: {e}")
+    if existing:
+        user = await update_user_on_login(torn_id, torn_name, api_key)
+        role = user["role"]
+        tier = user["subscription_tier"]
+    else:
+        user = await create_user(torn_id, torn_name, api_key)
+        role = "user"
+        tier = "free"
 
     # 3. Return JWT (identity = torn_id)
     token = create_jwt(torn_id=torn_id, torn_name=torn_name, role=role)
