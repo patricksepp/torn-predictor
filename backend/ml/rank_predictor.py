@@ -19,9 +19,9 @@ RANK_RANGES: dict[str, tuple[int, int]] = {
 _NORMALIZED: dict[str, str] = {r.lower(): r for r in RANK_RANGES}
 
 
-def _normalize_rank(rank: str) -> str:
-    """Case-insensitive lookup; falls back to Experienced if unknown."""
-    return _NORMALIZED.get(rank.lower(), "Experienced")
+def _normalize_rank(rank: str) -> str | None:
+    """Case-insensitive lookup; returns None if rank is unknown (custom lifestyle rank)."""
+    return _NORMALIZED.get(rank.lower())
 
 
 def _combat_split(ps: dict) -> tuple[float, float, float, float]:
@@ -95,13 +95,20 @@ def split_by_gym(predicted_tbs: int, ps: dict) -> tuple[int, int, int, int]:
     )
 
 
-def clamp_to_rank(tbs: int, rank: str) -> int:
+def is_known_rank(rank: str) -> bool:
+    """Returns True only for standard Torn battle stat ranks (not lifestyle/achievement ranks)."""
+    return _normalize_rank(rank) is not None
+
+
+def clamp_to_rank(tbs: int, rank: str) -> int | None:
     """
-    Clamps a TBS estimate to the known rank range (±15% margin for edge cases).
-    Rank is a hard game mechanic — a prediction outside the range is impossible.
+    Clamps a TBS estimate to the known rank range (±15% margin).
+    Returns None if rank is unknown (custom lifestyle rank) — caller should skip clamp.
     """
     norm = _normalize_rank(rank)
-    low, high = RANK_RANGES.get(norm, (0, 500_000_000))
+    if norm is None:
+        return None  # unknown rank — do not clamp
+    low, high = RANK_RANGES[norm]
     return max(int(low * 0.85), min(int(high * 1.15), tbs))
 
 
@@ -110,7 +117,7 @@ def rank_predict(rank: str, level: int, ps: dict | None = None) -> dict:
     Phase 1 prediction using rank + level, with gym-ratio stat split when available.
     Returns predicted_tbs, confidence='low', method='rank'.
     """
-    norm = _normalize_rank(rank)
+    norm = _normalize_rank(rank) or "Experienced"
     low, high = RANK_RANGES.get(norm, (25_000, 75_000))
 
     # Linear scale: level 1-100 maps to 30%-100% of the range

@@ -86,18 +86,20 @@ async def predict(
         result = ml_predict(profile)
         if result is not None:
             clamped = clamp_to_rank(result["predicted_tbs"], rank)
-            # If rank clamp moved the prediction by more than 3×, the ML is
-            # extrapolating outside its training range — fall back to rank.
-            if clamped > result["predicted_tbs"] * 3:
+            if clamped is None:
+                # Unknown custom rank — trust ML, skip clamp
+                pass
+            elif clamped > result["predicted_tbs"] * 3:
+                # ML extrapolated below rank range — fall back to rank
                 result = None
             else:
-                if clamped != result["predicted_tbs"]:
-                    ratio = clamped / max(result["predicted_tbs"], 1)
-                    result["predicted_tbs"] = clamped
-                    result["predicted_str"] = int((result.get("predicted_str") or 0) * ratio)
-                    result["predicted_def"] = int((result.get("predicted_def") or 0) * ratio)
-                    result["predicted_spd"] = int((result.get("predicted_spd") or 0) * ratio)
-                    result["predicted_dex"] = int((result.get("predicted_dex") or 0) * ratio)
+                ratio = clamped / max(result["predicted_tbs"], 1)
+                result["predicted_tbs"] = clamped
+                result["predicted_str"] = int((result.get("predicted_str") or 0) * ratio)
+                result["predicted_def"] = int((result.get("predicted_def") or 0) * ratio)
+                result["predicted_spd"] = int((result.get("predicted_spd") or 0) * ratio)
+                result["predicted_dex"] = int((result.get("predicted_dex") or 0) * ratio)
+            if result is not None:
                 s, d, sp, dx = split_by_gym(result["predicted_tbs"], ps)
                 result["predicted_str"] = s
                 result["predicted_def"] = d
