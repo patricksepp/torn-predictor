@@ -56,11 +56,14 @@ _FALLBACK_MEDIANS: dict[str, float] = {
 
 def _add_derived(df: pd.DataFrame) -> pd.DataFrame:
     """Compute derived features from stored columns."""
+    # Refill restores to max: 150 for donators, 100 for non-donators.
+    # We use 125 as a midpoint approximation; daysbeendonator is a separate feature
+    # that lets the model learn the donator/non-donator split.
     df["total_energy_proxy"] = (
         df["xantaken"].fillna(0)        * 250 +
         df["energydrinkused"].fillna(0) * 100 +
         df["candyused"].fillna(0)       * 10  +
-        df["refills"].fillna(0)         * 150   # refills fill to 150 (max energy bar)
+        df["refills"].fillna(0)         * 125
     )
     df["gym_total"] = (
         df["gymstrength"].fillna(0)  +

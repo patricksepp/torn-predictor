@@ -103,8 +103,8 @@ def _register_model_version(
     sb = get_supabase()
     # Deactivate previous active model
     sb.table("model_versions").update({"is_active": False}).eq("is_active", True).execute()
-    # Insert new version
-    sb.table("model_versions").insert({
+    # Insert (or update if version already exists)
+    sb.table("model_versions").upsert({
         "version":          version,
         "training_samples": samples,
         "rmse":             rmse,
