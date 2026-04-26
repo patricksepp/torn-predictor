@@ -8,7 +8,9 @@ from utils.crypto import decrypt
 # Minimum fair_fight value to consider an attack usable for training.
 # Values near 1.0 give the most accurate defender TBS estimates.
 # We exclude extreme ratios where the estimate becomes unreliable.
-MIN_FF = 0.4
+# Torn fair_fight modifier ranges 1.0–3.0.
+# Values < 1.5 give unreliable TBS estimates (defender vastly weaker than attacker).
+MIN_FF = 1.5
 MAX_FF = 3.0
 
 
@@ -123,14 +125,18 @@ def _extract_features(profile: dict) -> dict:
         "age_days":          _age_days(profile),
         "xantaken":          ps.get("xantaken"),
         "energydrinkused":   ps.get("energydrinkused"),
+        "candyused":         ps.get("candyused"),
+        "refills":           ps.get("refills"),
         "gymstrength":       ps.get("gymstrength"),
         "gymspeed":          ps.get("gymspeed"),
         "gymdefense":        ps.get("gymdefense"),
         "gymdexterity":      ps.get("gymdexterity"),
-        "attackswon":        ps.get("attackswon"),
         "statenhancersused": ps.get("statenhancersused"),
-        "refills":           ps.get("refills"),
-        "nerverefills":      ps.get("nerverefills"),
+        # trainsreceived intentionally omitted: employer trains give JOB stats
+        # (INT/MAN/END), not battle stats (STR/DEF/SPD/DEX)
+        "useractivity":      ps.get("useractivity"),
+        "attackswon":        ps.get("attackswon"),
+        "daysbeendonator":   ps.get("daysbeendonator"),
     }
 
 

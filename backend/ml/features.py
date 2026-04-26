@@ -1,29 +1,89 @@
 import numpy as np
 import pandas as pd
 
-FEATURE_COLUMNS = [
+# Columns stored in training_data that the model reads directly.
+# NOTE: trainsreceived is intentionally excluded — employer "trains" give
+# JOB stats (INT/MAN/END), not battle stats (STR/DEF/SPD/DEX).
+STORED_COLUMNS = [
     "level", "donordays", "age_days",
-    "xantaken", "energydrinkused",
+    # Energy items — primary drivers of gym time → battle stat gain
+    "xantaken",          # 250 energy each; biggest single source
+    "energydrinkused",   # 100 energy each
+    "candyused",         # 10 energy each
+    "refills",           # fills bar to 150 energy each time
+    # Gym session counts — direct stat indicator when available
     "gymstrength", "gymspeed", "gymdefense", "gymdexterity",
-    "attackswon", "statenhancersused", "refills", "nerverefills",
+    # Direct stat boosts (bypass gym)
+    "statenhancersused",
+    # Activity / subscription
+    "useractivity",      # total minutes online — strongest activity proxy
+    "attackswon",        # combat activity
+    "daysbeendonator",   # subscriber bonus (~10% extra stats per gym session)
 ]
 
-# Median fill values used when a column is entirely null in training data.
-# These are updated after each training run.
+# All features fed into XGBoost, including derived ones computed at build time.
+FEATURE_COLUMNS = STORED_COLUMNS + [
+    # energy_proxy: total energy available for gym sessions
+    # refills give 150 (fill to max), xanax 250, drinks 100, candy 10
+    "total_energy_proxy",
+    # gym_total: sum of all gym visits — powerful when non-zero
+    "gym_total",
+]
+
+# Fallback medians when a column is entirely null in training data.
 _FALLBACK_MEDIANS: dict[str, float] = {
-    "level": 30, "donordays": 0, "age_days": 1000,
-    "xantaken": 50, "energydrinkused": 100,
-    "gymstrength": 0, "gymspeed": 0, "gymdefense": 0, "gymdexterity": 0,
-    "attackswon": 100, "statenhancersused": 0, "refills": 200, "nerverefills": 50,
+    "level":              25,
+    "donordays":           0,
+    "age_days":         2000,
+    "xantaken":            0,
+    "energydrinkused":     0,
+    "candyused":           0,
+    "refills":             0,
+    "gymstrength":         0,
+    "gymspeed":            0,
+    "gymdefense":          0,
+    "gymdexterity":        0,
+    "statenhancersused":   0,
+    "trainsreceived":      0,
+    "useractivity":     5000,
+    "attackswon":          5,
+    "nerverefills":        0,
+    "daysbeendonator":     0,
+    "total_energy_proxy":  0,
+    "gym_total":           0,
 }
+
+
+def _add_derived(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute derived features from stored columns."""
+    df["total_energy_proxy"] = (
+        df["xantaken"].fillna(0)        * 250 +
+        df["energydrinkused"].fillna(0) * 100 +
+        df["candyused"].fillna(0)       * 10  +
+        df["refills"].fillna(0)         * 150   # refills fill to 150 (max energy bar)
+    )
+    df["gym_total"] = (
+        df["gymstrength"].fillna(0)  +
+        df["gymspeed"].fillna(0)     +
+        df["gymdefense"].fillna(0)   +
+        df["gymdexterity"].fillna(0)
+    )
+    return df
 
 
 def build_feature_matrix(rows: list[dict]) -> np.ndarray:
     """
     Converts a list of DB rows into a (n_samples, n_features) numpy array.
-    Fills nulls with column medians so the model never sees NaN.
+    Missing stored columns are filled with column medians; derived features
+    are computed from the stored ones.
     """
-    df = pd.DataFrame(rows, columns=FEATURE_COLUMNS)
+    df = pd.DataFrame(rows)
+    for col in STORED_COLUMNS:
+        if col not in df.columns:
+            df[col] = np.nan
+
+    df = _add_derived(df)
+
     for col in FEATURE_COLUMNS:
         if col not in df.columns:
             df[col] = np.nan
@@ -31,35 +91,39 @@ def build_feature_matrix(rows: list[dict]) -> np.ndarray:
         if pd.isna(median):
             median = _FALLBACK_MEDIANS.get(col, 0)
         df[col] = df[col].fillna(median)
+
     return df[FEATURE_COLUMNS].values.astype(np.float32)
 
 
 def build_single_feature_vector(profile: dict, personalstats: dict) -> np.ndarray:
-    """Builds a single (1, n_features) matrix from a Torn API profile."""
+    """Builds a single (1, n_features) matrix from a Torn API profile response."""
     from datetime import datetime, timezone
+
     signup = profile.get("signup")
     if signup:
         try:
-            signup_dt = datetime.strptime(signup, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
-            age_days = (datetime.now(timezone.utc) - signup_dt).days
+            dt      = datetime.strptime(signup, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            age_days = (datetime.now(timezone.utc) - dt).days
         except Exception:
             age_days = _FALLBACK_MEDIANS["age_days"]
     else:
         age_days = _FALLBACK_MEDIANS["age_days"]
 
     row = {
-        "level":             profile.get("level") or _FALLBACK_MEDIANS["level"],
-        "donordays":         profile.get("donordays") or 0,
+        "level":             profile.get("level")                      or _FALLBACK_MEDIANS["level"],
+        "donordays":         profile.get("donordays")                  or 0,
         "age_days":          age_days,
-        "xantaken":          personalstats.get("xantaken") or 0,
-        "energydrinkused":   personalstats.get("energydrinkused") or 0,
-        "gymstrength":       personalstats.get("gymstrength") or 0,
-        "gymspeed":          personalstats.get("gymspeed") or 0,
-        "gymdefense":        personalstats.get("gymdefense") or 0,
-        "gymdexterity":      personalstats.get("gymdexterity") or 0,
-        "attackswon":        personalstats.get("attackswon") or 0,
-        "statenhancersused": personalstats.get("statenhancersused") or 0,
-        "refills":           personalstats.get("refills") or 0,
-        "nerverefills":      personalstats.get("nerverefills") or 0,
+        "xantaken":          personalstats.get("xantaken")             or 0,
+        "energydrinkused":   personalstats.get("energydrinkused")      or 0,
+        "candyused":         personalstats.get("candyused")            or 0,
+        "refills":           personalstats.get("refills")              or 0,
+        "gymstrength":       personalstats.get("gymstrength")          or 0,
+        "gymspeed":          personalstats.get("gymspeed")             or 0,
+        "gymdefense":        personalstats.get("gymdefense")           or 0,
+        "gymdexterity":      personalstats.get("gymdexterity")         or 0,
+        "statenhancersused": personalstats.get("statenhancersused")    or 0,
+        "useractivity":      personalstats.get("useractivity")         or 0,
+        "attackswon":        personalstats.get("attackswon")           or 0,
+        "daysbeendonator":   personalstats.get("daysbeendonator")      or 0,
     }
     return build_feature_matrix([row])

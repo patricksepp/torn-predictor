@@ -143,20 +143,15 @@ def build_training_row(player: dict, profile: dict | None) -> dict:
         "estimated_tbs":     spy_total,
         "source_attack_id":  f"baldr_{player['torn_id']}",
         "contributed_by":    None,
-        # Pre-fill from Baldr; overwritten by Torn API values below
         "level":             player.get("lvl"),
-        "donordays":         None,
-        "age_days":          None,
-        "xantaken":          None,
-        "energydrinkused":   None,
-        "gymstrength":       None,
-        "gymspeed":          None,
-        "gymdefense":        None,
-        "gymdexterity":      None,
-        "attackswon":        None,
+        "donordays":         None, "age_days":          None,
+        "xantaken":          None, "energydrinkused":   None,
+        "candyused":         None, "refills":           None,
+        "gymstrength":       None, "gymspeed":          None,
+        "gymdefense":        None, "gymdexterity":      None,
         "statenhancersused": None,
-        "refills":           None,
-        "nerverefills":      None,
+        "useractivity":      None, "attackswon":        None,
+        "daysbeendonator":   None,
     }
 
     if profile:
@@ -167,14 +162,17 @@ def build_training_row(player: dict, profile: dict | None) -> dict:
             "age_days":          _age_days(profile),
             "xantaken":          ps.get("xantaken"),
             "energydrinkused":   ps.get("energydrinkused"),
+            "candyused":         ps.get("candyused"),
+            "refills":           ps.get("refills"),
             "gymstrength":       ps.get("gymstrength"),
             "gymspeed":          ps.get("gymspeed"),
             "gymdefense":        ps.get("gymdefense"),
             "gymdexterity":      ps.get("gymdexterity"),
-            "attackswon":        ps.get("attackswon"),
             "statenhancersused": ps.get("statenhancersused"),
-            "refills":           ps.get("refills"),
-            "nerverefills":      ps.get("nerverefills"),
+            # trainsreceived excluded: employer trains → job stats, not battle stats
+            "useractivity":      ps.get("useractivity"),
+            "attackswon":        ps.get("attackswon"),
+            "daysbeendonator":   ps.get("daysbeendonator"),
         })
 
     return row
@@ -233,14 +231,16 @@ def enrich_existing(players_by_id: dict, api_key: str, sb) -> None:
             "age_days":          _age_days(profile),
             "xantaken":          ps.get("xantaken"),
             "energydrinkused":   ps.get("energydrinkused"),
+            "candyused":         ps.get("candyused"),
+            "refills":           ps.get("refills"),
             "gymstrength":       ps.get("gymstrength"),
             "gymspeed":          ps.get("gymspeed"),
             "gymdefense":        ps.get("gymdefense"),
             "gymdexterity":      ps.get("gymdexterity"),
-            "attackswon":        ps.get("attackswon"),
             "statenhancersused": ps.get("statenhancersused"),
-            "refills":           ps.get("refills"),
-            "nerverefills":      ps.get("nerverefills"),
+            "useractivity":      ps.get("useractivity"),
+            "attackswon":        ps.get("attackswon"),
+            "daysbeendonator":   ps.get("daysbeendonator"),
         }
         sb.table("training_data")\
           .update(update_data)\
