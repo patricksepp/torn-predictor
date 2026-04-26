@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Battle Stats Predictor (TBSP)
 // @namespace    https://tbsp.app
-// @version      0.3.0
+// @version      0.3.1
 // @description  Predicts player battle stats using ML. Free & open alternative to BSP.
 // @author       TBSP
 // @match        https://www.torn.com/profiles.php*
@@ -565,7 +565,7 @@
             <div id="tbsp-msg" style="margin-top:8px;color:#888;font-size:12px"></div>
             <div style="margin-top:12px;color:#555;font-size:11px">
                 My TBS: <span id="tbsp-my-tbs">${getMyTBS() ? formatTBS(getMyTBS()) : 'unknown'}</span>
-                &nbsp;&bull;&nbsp;v0.2.0
+                &nbsp;&bull;&nbsp;v0.3.1
             </div>
         `;
 
@@ -627,7 +627,10 @@
                     showSettingsButton();
                     await fetchAndStoreMyTBS();
                     scanAndInject();
-                    setMsg('');
+                    // Fire-and-forget: upload attack logs to grow training data
+                    uploadAttacks().then(r => {
+                        if (r) S.set('lastUpload', Date.now());
+                    }).catch(() => {});
                 } catch (e) {
                     setMsg('Error: ' + e.message);
                 }
