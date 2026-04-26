@@ -12,8 +12,8 @@ RANK_RANGES: dict[str, tuple[int, int]] = {
     "Champion":          (50_000_000, 100_000_000),
     "Heroic":            (100_000_000, 200_000_000),
     "Legendary":         (200_000_000, 500_000_000),
-    # Torn uses custom rank titles that map to standard ranges
-    "Reasonable Alcoholic": (200_000, 2_000_000),
+    # Torn custom lifestyle ranks — these are achievement titles, not stat ranks.
+    # Do NOT add them here; unknown ranks fall back to "Experienced" via _normalize_rank.
 }
 
 _NORMALIZED: dict[str, str] = {r.lower(): r for r in RANK_RANGES}

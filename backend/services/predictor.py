@@ -45,11 +45,11 @@ async def predict(
     # 2. Own profile: if Full/Custom key, Torn returns exact battlestats for /user/
     if requester_torn_id and target_id == requester_torn_id:
         own = await fetch_basic_profile(requester_api_key)
-        bs  = own.get("battlestats") or {}
-        str_v = int(bs.get("strength") or 0)
-        def_v = int(bs.get("defense")  or 0)
-        spd_v = int(bs.get("speed")    or 0)
-        dex_v = int(bs.get("dexterity") or 0)
+        # battlestats come as top-level keys when combined with profile selection
+        str_v = int(own.get("strength")   or 0)
+        def_v = int(own.get("defense")    or 0)
+        spd_v = int(own.get("speed")      or 0)
+        dex_v = int(own.get("dexterity")  or 0)
         total = str_v + def_v + spd_v + dex_v
 
         if total > 0:

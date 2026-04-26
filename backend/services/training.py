@@ -93,12 +93,10 @@ def _extract_own_tbs(profile: dict) -> int | None:
     2. gym visit counts * heuristic multiplier (Limited/Full key)
     3. rank + level estimate (fallback, least accurate)
     """
-    # 1. Direct battlestats (Custom key)
-    bs = profile.get("battlestats") or {}
-    if bs:
-        total = sum(bs.get(k, 0) or 0 for k in ("strength", "defense", "speed", "dexterity"))
-        if total > 0:
-            return total
+    # 1. Direct battlestats — API returns these as top-level keys (not nested)
+    total = sum(profile.get(k) or 0 for k in ("strength", "defense", "speed", "dexterity"))
+    if total > 0:
+        return total
 
     # 2. Gym session counts (rough heuristic: ~5k stats per session on average)
     ps = profile.get("personalstats") or {}
