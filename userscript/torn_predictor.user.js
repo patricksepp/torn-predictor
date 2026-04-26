@@ -32,7 +32,7 @@
     // CONFIG
     // =========================================================================
 
-    const SERVER = 'https://tbsp-backend.railway.app'; // update after Railway deploy
+    const SERVER = 'https://torn-predictor-production.up.railway.app';
     const CACHE_TTL_MS = 5 * 24 * 60 * 60 * 1000;     // 5 days
 
     // NPC IDs — never predict these
