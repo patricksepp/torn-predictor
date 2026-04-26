@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import settings
 from db.supabase_client import get_supabase
+from ml.features import property_to_happy
 
 BALDR_DATA_URL = (
     "https://raw.githubusercontent.com/oranweb/tc-baldrs-levelling-list/master/data.json"
@@ -152,6 +153,7 @@ def build_training_row(player: dict, profile: dict | None) -> dict:
         "statenhancersused": None,
         "useractivity":      None, "attackswon":        None,
         "daysbeendonator":   None,
+        "property_happy":    None,
     }
 
     if profile:
@@ -173,6 +175,7 @@ def build_training_row(player: dict, profile: dict | None) -> dict:
             "useractivity":      ps.get("useractivity"),
             "attackswon":        ps.get("attackswon"),
             "daysbeendonator":   ps.get("daysbeendonator"),
+            "property_happy":    property_to_happy(profile.get("property")),
         })
 
     return row
