@@ -1,0 +1,17 @@
+backend/venv/
+backend/.env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+backend/ml/models/*.json
+backend/ml/models/*.pkl
+backend/ml/models/*.ubj
+backend/ml/models/*.joblib
+
+admin-dashboard/node_modules/
+admin-dashboard/.next/
+admin-dashboard/.env.local
+
+.DS_Store
+Thumbs.db
