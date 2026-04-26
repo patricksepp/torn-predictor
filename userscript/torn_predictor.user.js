@@ -511,7 +511,7 @@
         const panel = document.createElement('div');
         panel.id = 'tbsp-settings';
         panel.style.cssText = `
-            position: fixed; top: 60px; right: 16px; z-index: 99998;
+            position: fixed; top: 100px; right: 16px; z-index: 99998;
             width: 300px; background: #1a1a2e; border: 1px solid #555;
             border-radius: 8px; padding: 16px; color: #eee; font-size: 13px;
             box-shadow: 0 8px 24px rgba(0,0,0,.7);
@@ -632,7 +632,7 @@
         btn.id = 'tbsp-gear';
         btn.textContent = '⚔ TBSP';
         btn.style.cssText = `
-            position: fixed; bottom: 16px; right: 16px; z-index: 99997;
+            position: fixed; top: 60px; right: 16px; z-index: 99997;
             padding: 6px 12px; background: #2a6496; color: #eee;
             border: none; border-radius: 20px; cursor: pointer;
             font-size: 12px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,.5);

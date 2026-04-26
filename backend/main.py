@@ -6,9 +6,10 @@ from routers import auth, predict, data, subscription, admin
 app = FastAPI(title="Torn Battle Stats Predictor API", version="0.1.0")
 
 ALLOWED_ORIGINS = [
+    "https://www.torn.com",            # userscript
+    "https://torn.com",
     "https://torn-predictor.vercel.app",
-    "https://*.vercel.app",       # preview deployments
-    "http://localhost:3000",      # local admin dev
+    "http://localhost:3000",
     "http://localhost:8000",
 ]
 
