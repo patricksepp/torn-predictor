@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Battle Stats Predictor (TBSP)
 // @namespace    https://tbsp.app
-// @version      0.2.0
+// @version      0.3.0
 // @description  Predicts player battle stats using ML. Free & open alternative to BSP.
 // @author       TBSP
 // @match        https://www.torn.com/profiles.php*
@@ -21,7 +21,8 @@
 // @match        https://www.torn.com/page.php?sid=list&type=friends
 // @match        https://www.torn.com/page.php?sid=list&type=enemies
 // @match        https://www.torn.com/page.php?sid=list&type=targets
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @connect      torn-predictor-production.up.railway.app
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -67,15 +68,35 @@
     }
 
     // =========================================================================
-    // API
+    // API  (GM_xmlhttpRequest bypasses CORS — requests come from the extension)
     // =========================================================================
+
+    function gmFetch(url, opts = {}) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method:  opts.method || 'GET',
+                url,
+                headers: opts.headers || {},
+                data:    opts.body   || null,
+                timeout: 15000,
+                onload(r) {
+                    resolve({
+                        ok:     r.status >= 200 && r.status < 300,
+                        status: r.status,
+                        json:   () => { try { return Promise.resolve(JSON.parse(r.responseText)); } catch(e) { return Promise.reject(e); } },
+                    });
+                },
+                onerror()   { reject(new Error('Network error — check your connection')); },
+                ontimeout() { reject(new Error('Request timed out')); },
+            });
+        });
+    }
 
     async function apiRequest(path, opts = {}) {
         const token = getToken();
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = 'Bearer ' + token;
-        const res = await fetch(SERVER + path, { headers, ...opts });
-        return res;
+        return gmFetch(SERVER + path, { ...opts, headers });
     }
 
     async function login(apiKey) {
