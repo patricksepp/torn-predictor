@@ -21,6 +21,9 @@ STORED_COLUMNS = [
     "daysbeendonator",   # subscriber bonus (~10% extra stats per gym session)
     # Property → max happiness proxy (happiness is dominant gym gains multiplier)
     "property_happy",    # Shack=100, Penthouse=925, Private Island=3000
+    # Rank trigger inputs — proxy for total game progression
+    "crimes",            # criminaloffences count from personalstats
+    "networth",          # player networth in $ from profile
 ]
 
 # All features fed into XGBoost, including derived ones computed at build time.
@@ -30,6 +33,9 @@ FEATURE_COLUMNS = STORED_COLUMNS + [
     "total_energy_proxy",
     # gym_total: sum of all gym visits — powerful when non-zero
     "gym_total",
+    # level_triggers: number of rank trigger thresholds crossed by level alone
+    # [2, 6, 11, 26, 31, 50, 71, 100] → max 8 triggers at level 100
+    "level_triggers",
 ]
 
 PROPERTY_HAPPY: dict[str, int] = {
@@ -73,9 +79,15 @@ _FALLBACK_MEDIANS: dict[str, float] = {
     "nerverefills":        0,
     "daysbeendonator":     0,
     "property_happy":    400,
+    "crimes":           5000,
+    "networth":    500_000_000,
     "total_energy_proxy":  0,
     "gym_total":           0,
+    "level_triggers":      4,
 }
+
+
+_LEVEL_TRIGGER_THRESHOLDS = [2, 6, 11, 26, 31, 50, 71, 100]
 
 
 def _add_derived(df: pd.DataFrame) -> pd.DataFrame:
@@ -94,6 +106,9 @@ def _add_derived(df: pd.DataFrame) -> pd.DataFrame:
         df["gymspeed"].fillna(0)     +
         df["gymdefense"].fillna(0)   +
         df["gymdexterity"].fillna(0)
+    )
+    df["level_triggers"] = df["level"].fillna(0).apply(
+        lambda lvl: sum(1 for t in _LEVEL_TRIGGER_THRESHOLDS if lvl >= t)
     )
     return df
 
@@ -153,5 +168,7 @@ def build_single_feature_vector(profile: dict, personalstats: dict) -> np.ndarra
         "attackswon":        personalstats.get("attackswon")           or 0,
         "daysbeendonator":   personalstats.get("daysbeendonator")      or 0,
         "property_happy":    property_to_happy(profile.get("property")),
+        "crimes":            personalstats.get("criminaloffences")     or 0,
+        "networth":          profile.get("networth")                   or 0,
     }
     return build_feature_matrix([row])

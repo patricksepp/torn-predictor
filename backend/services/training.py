@@ -135,6 +135,8 @@ def _extract_features(profile: dict) -> dict:
         "attackswon":        ps.get("attackswon"),
         "daysbeendonator":   ps.get("daysbeendonator"),
         "property_happy":    property_to_happy(profile.get("property")),
+        "crimes":            ps.get("criminaloffences"),
+        "networth":          profile.get("networth"),
     }
 
 
