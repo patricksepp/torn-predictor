@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Battle Stats Predictor (TBSP)
 // @namespace    https://tbsp.app
-// @version      0.3.1
+// @version      0.3.2
 // @description  Predicts player battle stats using ML. Free & open alternative to BSP.
 // @author       TBSP
 // @match        https://www.torn.com/profiles.php*
@@ -313,12 +313,17 @@
         return el.dataset.tbspDone === '1' || !!el.querySelector('.tbsp-badge');
     }
 
+    function isInChat(el) {
+        return !!el.closest('#chatRoot, .chat-box-wrap, [class*="chatBox"], [class*="chat-box"], [id*="chat"]');
+    }
+
     // =========================================================================
     // INJECT BADGE — generic (list pages / inline)
     // =========================================================================
 
     async function injectBadge(nameEl) {
         if (hasInjectedBadge(nameEl)) return;
+        if (isInChat(nameEl)) return;
         nameEl.dataset.tbspDone = '1';
 
         const targetId = parseTornId(nameEl);
@@ -509,6 +514,7 @@
         for (const m of mutations) {
             for (const node of m.addedNodes) {
                 if (node.nodeType !== 1) continue;
+                if (isInChat(node)) continue;
                 // Trigger if any meaningful element was added
                 if (
                     node.querySelector?.('.user.name') ||
@@ -565,7 +571,7 @@
             <div id="tbsp-msg" style="margin-top:8px;color:#888;font-size:12px"></div>
             <div style="margin-top:12px;color:#555;font-size:11px">
                 My TBS: <span id="tbsp-my-tbs">${getMyTBS() ? formatTBS(getMyTBS()) : 'unknown'}</span>
-                &nbsp;&bull;&nbsp;v0.3.1
+                &nbsp;&bull;&nbsp;v0.3.2
             </div>
         `;
 
