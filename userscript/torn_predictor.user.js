@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Battle Stats Predictor (TBSP)
 // @namespace    https://tbsp.app
-// @version      0.3.4
+// @version      0.3.5
 // @description  Predicts player battle stats using ML. Free & open alternative to BSP.
 // @author       TBSP
 // @match        https://www.torn.com/profiles.php*
@@ -211,17 +211,10 @@
 
     function badgeText(prediction, myTBS) {
         const { color, label } = getColor(prediction.predicted_tbs, myTBS);
-        const samples  = prediction.training_samples || 0;
         const readable = formatTBS(prediction.predicted_tbs);
-        let text;
-        if (prediction.method === 'rank' || samples < 100) {
-            text = label;                        // Phase 1: label only
-        } else if (samples < 500) {
-            text = `${label} ~${readable}`;      // Phase 2: approximate
-        } else {
-            text = `${label} ${readable}`;       // Phase 3: precise
-        }
-        return { text, color };
+        // Always show number; ~ when rank-based (no ML yet, estimate only)
+        const numStr = prediction.method === 'rank' ? `~${readable}` : readable;
+        return { text: `${label} ${numStr}`, color };
     }
 
     // =========================================================================
@@ -287,7 +280,8 @@
         badge.textContent  = `[${text}]`;
         badge.style.cssText = `
             display: inline-block; margin-left: 4px;
-            font-size: 11px; font-weight: bold;
+            font-size: 11px; font-weight: bold; line-height: 1;
+            vertical-align: middle;
             color: ${color}; cursor: help;
             text-shadow: 0 0 4px rgba(0,0,0,.8);
         `;
@@ -378,7 +372,7 @@
         placeholder.className  = 'tbsp-badge';
         placeholder.dataset.tbspId = String(targetId);
         placeholder.textContent   = '[…]';
-        placeholder.style.cssText = 'display:inline-block;margin-left:4px;font-size:11px;color:#666;';
+        placeholder.style.cssText = 'display:inline-block;margin-left:4px;font-size:11px;line-height:1;vertical-align:middle;color:#666;';
 
         // Append inside container, or after the element if it's an <a>
         if (nameEl.tagName === 'A') {
@@ -616,7 +610,7 @@
             <div id="tbsp-msg" style="margin-top:8px;color:#888;font-size:12px"></div>
             <div style="margin-top:12px;color:#555;font-size:11px">
                 My TBS: <span id="tbsp-my-tbs">${getMyTBS() ? formatTBS(getMyTBS()) : 'unknown'}</span>
-                &nbsp;&bull;&nbsp;v0.3.4
+                &nbsp;&bull;&nbsp;v0.3.5
             </div>
         `;
 
