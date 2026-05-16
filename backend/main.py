@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers import auth, predict, data, subscription, admin
+from config import settings
 
 app = FastAPI(title="Torn Battle Stats Predictor API", version="0.1.0")
 
@@ -32,3 +33,18 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.post("/api/cron/check-payments")
+async def cron_check_payments(secret: str = Query(...)):
+    """
+    Called by an external cron service (e.g. cron-job.org) every hour.
+    Scans our Torn account events for new xanax payments and applies them.
+    Protected by a static secret key set in CRON_SECRET env var.
+    """
+    if not settings.cron_secret or secret != settings.cron_secret:
+        raise HTTPException(403, "Invalid cron secret")
+
+    from services.payments import check_and_apply_payments
+    applied = await check_and_apply_payments()
+    return {"applied": len(applied), "payments": applied}

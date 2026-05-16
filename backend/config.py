@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     fernet_key: str
     our_torn_api_key: str
     our_torn_id: int
+    cron_secret: str = ""
     port: int = 8000
     environment: str = "development"
 
