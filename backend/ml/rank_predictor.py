@@ -20,8 +20,19 @@ _NORMALIZED: dict[str, str] = {r.lower(): r for r in RANK_RANGES}
 
 
 def _normalize_rank(rank: str) -> str | None:
-    """Case-insensitive lookup; returns None if rank is unknown (custom lifestyle rank)."""
-    return _NORMALIZED.get(rank.lower())
+    """
+    Case-insensitive lookup. Handles compound ranks like 'Heroic Coward' by trying
+    the first word when the full string isn't a known stat rank.
+    Returns None only if neither the full rank nor its first word is a known stat rank.
+    """
+    if not rank:
+        return None
+    norm = _NORMALIZED.get(rank.lower())
+    if norm:
+        return norm
+    # Compound rank: "Heroic Coward" → try "Heroic"
+    first_word = rank.split()[0]
+    return _NORMALIZED.get(first_word.lower())
 
 
 def _combat_split(ps: dict) -> tuple[float, float, float, float]:
