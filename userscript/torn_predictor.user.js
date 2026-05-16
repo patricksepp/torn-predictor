@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Battle Stats Predictor (TBSP)
 // @namespace    https://tbsp.app
-// @version      0.3.2
+// @version      0.3.3
 // @description  Predicts player battle stats using ML. Free & open alternative to BSP.
 // @author       TBSP
 // @match        https://www.torn.com/profiles.php*
@@ -34,7 +34,8 @@
     // =========================================================================
 
     const SERVER = 'https://torn-predictor-production.up.railway.app';
-    const CACHE_TTL_MS = 5 * 24 * 60 * 60 * 1000;     // 5 days
+    const CACHE_TTL_MS     = 7 * 24 * 60 * 60 * 1000;  // 7 days  (hard expiry — discard)
+    const CACHE_REFRESH_MS = 1 * 24 * 60 * 60 * 1000;  // 1 day   (stale — refresh in background)
 
     // NPC IDs — never predict these
     const NPC_IDS = new Set([4, 7, 8, 9, 10, 15, 17, 19, 20, 21, 23]);
@@ -64,7 +65,29 @@
         return entry;
     }
     function setCached(targetId, data) {
-        S.set('pred.' + targetId, { ...data, expires: Date.now() + CACHE_TTL_MS });
+        S.set('pred.' + targetId, { ...data, expires: Date.now() + CACHE_TTL_MS, refreshed_at: Date.now() });
+    }
+    function isStale(entry) {
+        return !entry.refreshed_at || Date.now() - entry.refreshed_at > CACHE_REFRESH_MS;
+    }
+
+    // IDs currently being refreshed — prevents duplicate concurrent requests
+    const _refreshing = new Set();
+
+    async function refreshInBackground(targetId) {
+        if (_refreshing.has(targetId)) return;
+        _refreshing.add(targetId);
+        try {
+            const res = await apiRequest(`/api/predict/${targetId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            setCached(targetId, data);
+            // Update every visible badge for this player without a page reload
+            document.querySelectorAll(`.tbsp-badge[data-tbsp-id="${targetId}"]`).forEach(badge => {
+                updateBadge(badge, data);
+            });
+        } catch {}
+        finally { _refreshing.delete(targetId); }
     }
 
     // =========================================================================
@@ -113,7 +136,10 @@
 
     async function fetchPrediction(targetId) {
         const cached = getCached(targetId);
-        if (cached) return cached;
+        if (cached) {
+            if (isStale(cached)) refreshInBackground(targetId);
+            return cached;
+        }
 
         const res = await apiRequest(`/api/predict/${targetId}`);
         if (!res.ok) return null;
@@ -571,7 +597,7 @@
             <div id="tbsp-msg" style="margin-top:8px;color:#888;font-size:12px"></div>
             <div style="margin-top:12px;color:#555;font-size:11px">
                 My TBS: <span id="tbsp-my-tbs">${getMyTBS() ? formatTBS(getMyTBS()) : 'unknown'}</span>
-                &nbsp;&bull;&nbsp;v0.3.2
+                &nbsp;&bull;&nbsp;v0.3.3
             </div>
         `;
 
