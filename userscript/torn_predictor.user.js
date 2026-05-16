@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Battle Stats Predictor (TBSP)
 // @namespace    https://tbsp.app
-// @version      0.3.3
+// @version      0.3.4
 // @description  Predicts player battle stats using ML. Free & open alternative to BSP.
 // @author       TBSP
 // @match        https://www.torn.com/profiles.php*
@@ -71,6 +71,16 @@
         return !entry.refreshed_at || Date.now() - entry.refreshed_at > CACHE_REFRESH_MS;
     }
 
+    // Re-renders every visible badge using the current myTBS value.
+    // Called whenever myTBS changes so colours stay in sync.
+    function refreshAllBadgeColors() {
+        document.querySelectorAll('.tbsp-badge[data-tbsp-id]').forEach(badge => {
+            const id = parseInt(badge.dataset.tbspId, 10);
+            const cached = getCached(id);
+            if (cached) updateBadge(badge, cached);
+        });
+    }
+
     // IDs currently being refreshed — prevents duplicate concurrent requests
     const _refreshing = new Set();
 
@@ -86,6 +96,11 @@
             document.querySelectorAll(`.tbsp-badge[data-tbsp-id="${targetId}"]`).forEach(badge => {
                 updateBadge(badge, data);
             });
+            // If own prediction refreshed, update myTBS and re-colour all badges
+            if (targetId === getMyTornId() && data.predicted_tbs) {
+                setMyTBS(data.predicted_tbs);
+                refreshAllBadgeColors();
+            }
         } catch {}
         finally { _refreshing.delete(targetId); }
     }
@@ -146,6 +161,10 @@
 
         const data = await res.json();
         setCached(targetId, data);
+        // Keep myTBS in sync whenever a fresh server result arrives for own ID
+        if (targetId === getMyTornId() && data.predicted_tbs) {
+            setMyTBS(data.predicted_tbs);
+        }
         return data;
     }
 
@@ -597,7 +616,7 @@
             <div id="tbsp-msg" style="margin-top:8px;color:#888;font-size:12px"></div>
             <div style="margin-top:12px;color:#555;font-size:11px">
                 My TBS: <span id="tbsp-my-tbs">${getMyTBS() ? formatTBS(getMyTBS()) : 'unknown'}</span>
-                &nbsp;&bull;&nbsp;v0.3.3
+                &nbsp;&bull;&nbsp;v0.3.4
             </div>
         `;
 
@@ -709,7 +728,12 @@
             const myId = getMyTornId();
             if (!myId) return;
             const pred = await fetchPrediction(myId);
-            if (pred && pred.predicted_tbs) setMyTBS(pred.predicted_tbs);
+            if (pred && pred.predicted_tbs) {
+                const prev = getMyTBS();
+                setMyTBS(pred.predicted_tbs);
+                // Re-colour all visible badges if our own TBS value changed
+                if (prev !== pred.predicted_tbs) refreshAllBadgeColors();
+            }
         } catch {}
     }
 
